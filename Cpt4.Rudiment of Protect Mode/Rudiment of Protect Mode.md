@@ -412,4 +412,62 @@ GDTR寄存器保存了GDT的地址，和GDT表的长度信息。
 
 ## 打开A20地址线
 
-（未完待续）
+在8086/8088cpu中，超过0xFFFFF的高位数据会被直接舍去。因此，利用这一特性搞出来的地址回绕成为了那一时代程序员的编程技巧之一。
+
+然而80286之后，这个地址线啊，多了几条。为了保留这个技巧，Intel搞了个A20Gate
+
+实模式下，这个A20Gate是关闭。关闭时，按早8086的地址回绕特性进行寻址
+
+进入保护模式前，需要先打开A20Gate，解放高位地址线的开关
+
+```assembly
+in al,0x92
+or al,0000_0010B
+out 0x92,al
+```
+
+上述指令可以打开A20Gate
+
+## 保护模式的开关，CR0寄存器的PE位
+
+CRx寄存器，Control Register，用于控制CPU的运行机制，或者用于展示CPU的内部状态。
+
+想要进入保护模式，就得将CR0的PE位设置为1
+
+- CR0寄存器的长度：32bits
+
+  | 31   | 30   | 29   | 28\~19 | 18   | 17   | 16   | 15\~6 | 5    | 4    | 3    | 2    | 1    | 0    |
+  | ---- | ---- | ---- | ------ | ---- | ---- | ---- | ----- | ---- | ---- | ---- | ---- | ---- | ---- |
+  | PG   | CD   | NW   | 保留   | AM   | 保留 | WP   | 保留  | NE   | ET   | TS   | EM   | MP   | PE   |
+
+  | 标志位 | 描述                             |
+  | ------ | -------------------------------- |
+  | PE     | Protection Enable                |
+  | MP     | Monitor coProcessor/Math Present |
+  | EM     | Emulation                        |
+  | TS     | Task Switched                    |
+  | ET     | Extention Type                   |
+  | NE     | Numeric Error                    |
+  | WP     | Write Protect                    |
+  | AM     | Alignment Mask                   |
+  | NW     | Not Writethrough                 |
+  | CD     | Cache Disable                    |
+  | PG     | Paging                           |
+
+- PE = 0,表示在实模式下运行
+- PE = 1,表示在保护模式下运行
+
+```assembly
+mov eax,cr0
+or eax,0x00000001
+mov cr0,eax
+```
+
+## 进入保护模式
+
+看代码咯，没啥好说的了。
+
+更新了`./include/boot.inc`和`./loader.s`
+
+## 保护模式之内存段的保护
+
