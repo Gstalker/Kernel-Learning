@@ -2,6 +2,8 @@
 SECTION LOADER vstart=LOADER_BASE_ADDR
 LOADER_STACK_TOP equ LOADER_BASE_ADDR
 
+jmp loader_start
+
 ;构建gdt及其内部的描述符
 GDT_BASE:
     dd 0x00000000

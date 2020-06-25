@@ -515,6 +515,45 @@ mov cr0,eax
 
 （待补充）
 
+## 编译、虚拟硬盘读写，运行虚拟机
+
+下面这些代码已经写成shell文件放在Cpt4文件夹里头了
+
+```shell
+cd Kernel-Learning/
+cd Cpt4.Rudiment\ of\ Protect\ Mode/
+nasm -o ./mbr.bin ./mbr.s
+nasm -o ./loader.bin ./loader.s
+cd ..
+dd if=./Cpt4.Rudiment\ of\ Protect\ Mode/mbr.bin of=./bochs/bin/hd60M.img bs=512 count=1 conv=notrunc
+dd if=./Cpt4.Rudiment\ of\ Protect\ Mode/loader.bin of=./bochs/bin/hd60M.img bs=512 count=4 conv=notrunc seek=2
+cd ./bochs/bin
+./bochs -f ./bochsrc.disk
+```
+
+## 书本勘误
+
+160页，代码boot.inc，下面是原文代码
+
+```assembly
+DESC_VIDEO_HIGH4 equ (0x00 << 24) + DESC_G_4K + DESC_D_32 +\
+                      DESC_L + DESC_AVL + DESC_LIMIT_VIDEO2 + DESC_P + \
+                      DESC_DPL_0 + DESC_S_DATA + DESC_TYPE_DATA + 0x00
+```
+
+最后的0x00得改成0x0b，否则后边儿loader.bin运行的时候写入的字符'P'就不在显存里头了。原理请结合GDT的结构理解。
+
+修改后的代码
+
+```assembly
+DESC_VIDEO_HIGH4 equ (0x00 << 24) + DESC_G_4K + DESC_D_32 +\
+                      DESC_L + DESC_AVL + DESC_LIMIT_VIDEO2 + DESC_P + \
+                      DESC_DPL_0 + DESC_S_DATA + DESC_TYPE_DATA + 0x0b
+```
+
+
+
 # FIN
 
 178页
+
