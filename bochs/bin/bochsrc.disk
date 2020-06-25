@@ -189,7 +189,6 @@
 #=======================================================================
 cpu: model=core_duo_t2400_yonah, count=1, ips=50000000, reset_on_triple_fault=1, ignore_bad_msrs=1, msrs="msrs.def"
 cpu: cpuid_limit_winnt=0
-
 #=======================================================================
 # CPUID:
 #
@@ -370,7 +369,7 @@ memory: guest=512, host=256
 # The Bochs BIOS currently supports only the option "fastboot" to skip the
 # boot menu delay.
 #=======================================================================
-romimage: file=/home/gstalker/Desktop/bochs/share/bochs/BIOS-bochs-latest
+romimage: file=../share/bochs/BIOS-bochs-latest
 #romimage: file=$BXSHARE/bios.bin-1.13.0 # http://www.seabios.org/SeaBIOS
 #romimage: file=mybios.bin, address=0xfff80000 # 512k at memory top
 
@@ -378,7 +377,7 @@ romimage: file=/home/gstalker/Desktop/bochs/share/bochs/BIOS-bochs-latest
 # VGAROMIMAGE
 # You now need to load a VGA ROM BIOS into C0000.
 #=======================================================================
-vgaromimage: file=/home/gstalker/Desktop/bochs/share/bochs/VGABIOS-lgpl-latest
+vgaromimage: file=../share/bochs/VGABIOS-lgpl-latest
 #vgaromimage: file=bios/VGABIOS-lgpl-latest-cirrus
 #vgaromimage: file=$BXSHARE/vgabios-cirrus.bin-1.13.0 # http://www.seabios.org/SeaVGABIOS
 #vgaromimage: file=bios/VGABIOS-elpin-2.40
@@ -486,11 +485,12 @@ vgaromimage: file=/home/gstalker/Desktop/bochs/share/bochs/VGABIOS-lgpl-latest
 #     and "win".
 
 # Examples:
-   keyboard: type=mf, serial_delay=200, paste_delay=100000
-   keyboard: keymap=/home/gstalker/Desktop/bochs/share/bochs/keymaps/x11-pc-us.map
+#   keyboard: type=mf, serial_delay=200, paste_delay=100000
+#   keyboard: keymap=gui/keymaps/x11-pc-de.map
 #   keyboard: user_shortcut=ctrl-alt-del
 #=======================================================================
-#keyboard: type=mf, serial_delay=250
+keyboard: type=mf, serial_delay=200, paste_delay=100000
+keyboard: keymap=../share/bochs/keymaps/x11-pc-us.map
 
 #=======================================================================
 # MOUSE:
@@ -727,7 +727,7 @@ ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
 #   ata3-master: type=disk, mode=flat, path=483M.sample, cylinders=1024, heads=15, spt=63
 #   ata3-slave:  type=cdrom, path=iso.sample, status=inserted
 #=======================================================================
-ata0-master: type=disk, path="/home/gstalker/Desktop/bochs/bin/hd60M.img", mode=flat
+ata0-master: type=disk, path="./hd60M.img", mode=flat
 #ata0-master: type=disk, mode=flat, path="30M.sample", cylinders=615, heads=6, spt=17
 #ata0-master: type=disk, mode=flat, path="c.img", cylinders=0 # autodetect
 #ata0-slave: type=disk, mode=vvfat, path=/bochs/images/vvfat, journal=vvfat.redolog
@@ -934,7 +934,7 @@ parport1: enabled=1, file="parport.out"
 # the Beep() function. The 'gui' mode forwards the beep to the related
 # gui methods (currently only used by the Carbon gui).
 #=======================================================================
-#speaker: enabled=1, mode=sound
+speaker: enabled=1, mode=sound
 
 #=======================================================================
 # SB16:
@@ -1183,7 +1183,7 @@ parport1: enabled=1, file="parport.out"
 # Default value is enabled=0.
 # WARNING: This Bochs feature is not maintained yet and may fail.
 #=======================================================================
-#gdbstub: enabled=0, port=1234, text_base=0, data_base=0, bss_base=0
+#gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
 
 #=======================================================================
 # MAGIC_BREAK:

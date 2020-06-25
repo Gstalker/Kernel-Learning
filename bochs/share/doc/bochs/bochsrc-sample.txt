@@ -1272,6 +1272,6 @@ speaker: enabled=1, mode=sound
 #megs: 256
 #megs: 128
 #megs: 64
-megs: 32
+#megs: 32
 #megs: 16
 #megs: 8
