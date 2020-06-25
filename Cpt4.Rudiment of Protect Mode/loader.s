@@ -1,9 +1,9 @@
-%include "boot.inc"
-section loader vstart = LOADER_BASE_ADDRs
+%include "./include/boot.inc"
+SECTION LOADER vstart=LOADER_BASE_ADDR
 LOADER_STACK_TOP equ LOADER_BASE_ADDR
 
 ;构建gdt及其内部的描述符
-GDT_BASE: 
+GDT_BASE:
     dd 0x00000000
     dd 0x00000000
 CODE_DESC:
