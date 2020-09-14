@@ -290,7 +290,7 @@ cr3的结构：
 
 ```assembly
 mov eax,cr3
-...
+mov eax,ADDR_OF_PDE
 mov cr3,eax
 ```
 
@@ -316,3 +316,134 @@ mov cr0,eax
 
 我们的操作系统内核比较简单，所以占用内存量少，最终大小在70kb左右。我们选择把操作系统加载在0\~0xfffff这个区间的物理内存内，然后把这块物理内存映射到虚拟内存的高位地址。
 
+## 加载内核
+
+### 用C写内核：记得设置编译器参数
+
+C语言是最贴近底层的语言，一方面出于其设计，另一方面便是其编译过程的高度可定制性。
+
+我们在学习C语言过程中使用的DEV-CPP，VS等IDE生成的PE文件/ELF文件，都是打包好的二进制文件。我们所写的代码只是这些文件中的一部分。
+
+这些打包好的二进制文件，其中的代码运行时或多或少**要依赖其操作系统。**
+
+现在我们自己写操作系统，自然就不能有这些依赖项。所有的功能都得从0开始写。
+
+```bash
+gee -c -o main.o main.c
+ld main.o -Ttext Oxc0001500 -e main -o kernel.bin
+rm ./main.o
+dd if=kernel.bin of=/yourpath/hd60M.img bs=512 count=200 seek=9 conv=notrunc 
+```
+
+gcc -c参数：生成文件不进行链接
+
+ld：连接器。
+
+- -Ttext ：指定起始虚拟地址
+- -e：entry ADDRESS，设置程序起始的地址。可以用符号名代替
+- -o：output，最终的输出文件
+
+### 测试用的短代码
+
+```c
+int main(void){
+  while(1);
+  return 0;
+}
+```
+
+如果前面列出的ld指令不加入 -e参数指定程序起始位置，则可能报错。因为缺少_start符号。
+
+我们也可以换一种写法
+
+```c
+//ld main.o -Ttext Oxc0001500 -o kernel.bin
+int _start(void){
+  while(1);
+  return 0;
+}
+```
+
+### 解析ELF文件
+
+linux下连接器最终生成的是一个ELF文件。类似WINDOWS的PE文件，ELF文件的结构大致可以描述如下
+
+| 结构体     | 含义                                                         |
+| ---------- | ------------------------------------------------------------ |
+| ELF header | 描述elf文件的基本信息<br />描述elf文件主体的分段信息和段偏移等内容<br />程序入口地址<br />…… |
+| 代码段     | ……                                                           |
+| 若干数据段 | ……                                                           |
+| …………       | ……                                                           |
+
+有关elf头，可以在`/usr/include/elf.h`中找到。这里不再赘述其中各个变量的作用。
+
+（反正比PE头简洁）
+
+```c
+#define EI_NIDENT (16)
+typedef struct
+{
+  unsigned char	e_ident[EI_NIDENT];	/* Magic number and other info */
+  Elf32_Half	e_type;			/* Object file type */
+  Elf32_Half	e_machine;		/* Architecture */
+  Elf32_Word	e_version;		/* Object file version */
+  Elf32_Addr	e_entry;		/* Entry point virtual address */
+  Elf32_Off	e_phoff;		/* Program header table file offset */
+  Elf32_Off	e_shoff;		/* Section header table file offset */
+  Elf32_Word	e_flags;		/* Processor-specific flags */
+  Elf32_Half	e_ehsize;		/* ELF header size in bytes */
+  Elf32_Half	e_phentsize;		/* Program header table entry size */
+  Elf32_Half	e_phnum;		/* Program header table entry count */
+  Elf32_Half	e_shentsize;		/* Section header table entry size */
+  Elf32_Half	e_shnum;		/* Section header table entry count */
+  Elf32_Half	e_shstrndx;		/* Section header string table index */
+} Elf32_Ehdr;。
+```
+
+然后下边这个是section头结构体
+
+```c
+typedef struct
+{
+  Elf64_Word	p_type;			/* Segment type */
+  Elf64_Word	p_flags;		/* Segment flags */
+  Elf64_Off	p_offset;		/* Segment file offset */
+  Elf64_Addr	p_vaddr;		/* Segment virtual address */
+  Elf64_Addr	p_paddr;		/* Segment physical address */
+  Elf64_Xword	p_filesz;		/* Segment size in file */
+  Elf64_Xword	p_memsz;		/* Segment size in memory */
+  Elf64_Xword	p_align;		/* Segment alignment */
+} Elf64_Phdr;
+```
+
+### 将内核加载进内存
+
+Loader.s的任务即将完成，不过还有两个功能需要写进去：
+
+1. 将内核文件读取进内存
+2. 分析内存中的elf文件并加载入相应的虚拟地址。
+
+想要完成第一个任务，我们先得搞定内存布局先。到现在为止，我们的系统的布局如下：
+
+| 物理地址起点 | 物理地址终点 | 内存空间大小 | 用途                |
+| ------------ | ------------ | ------------ | ------------------- |
+| 0x9fc00      | 0x9ffff      | 1K           | EBDA扩展bios数据区  |
+| 0x7e00       | 0x9fbff      | 约608k       | 可用区域            |
+| 0x7c00       | 0x7dff       | 512B         | MBR被BIOS加载到此处 |
+| 0x500        | 0x7bff       | 约30K        | 可用区域            |
+| 0x400        | 0x4ff        | 256B         | BIOS Data Area      |
+| 0x000        | 0x3ff        | 1k           | 中断向量表          |
+
+我们这里就按照课本的步骤来，将内核加载到0x70000这个位置。
+
+0x70000~0x9fbff有190kb的大小。对于一个纯代码+少量数据构成的简易内核，这190kb是足够大的了。
+
+内核栈选取在物理地址0x900，虚拟地址0xc0000900的位置。
+
+加载完内核之后，mbr+loader的任务就都结束了。接下来正式进入内核阶段。 
+
+## 特权级
+
+> 未完待续
+>
+> 这个坑也许不会填？先立个flag
